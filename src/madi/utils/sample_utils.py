@@ -23,11 +23,12 @@ import tensorflow as tf
 
 class Variable(object):
 
-  def __init__(self, index, name, mean, std):
+  def __init__(self, index, name, mean, std, cat=False):
     self.index = index
     self.mean = mean
     self.name = name
     self.std = std
+    self.cat = cat
 
 
 def get_normalization_info(df: pd.DataFrame) -> Dict[str, Variable]:
@@ -45,17 +46,26 @@ def get_normalization_info(df: pd.DataFrame) -> Dict[str, Variable]:
   """
   variables = {}
   for column in df:
-    if not np.issubdtype(df[column].dtype, np.number):
-      raise ValueError("The feature column %s is not numeric." % column)
+    if df[column].dtype.name == 'category':
+      variable = Variable(
+        index=df.columns.get_loc(column),
+        name=column,
+        mean=None,
+        std=None,
+        cat=True)
 
-    if column.endswith("_validity"):
-      vmean = 0.0
-      vstd = 1.0
     else:
-      vmean = df[column].mean()
-      vstd = df[column].std()
+      if not np.issubdtype(df[column].dtype, np.number):
+        raise ValueError("The feature column %s is not numeric." % column)
 
-    variable = Variable(
+      if column.endswith("_validity"):
+        vmean = 0.0
+        vstd = 1.0
+      else:
+        vmean = df[column].mean()
+        vstd = df[column].std()
+
+      variable = Variable(
         index=df.columns.get_loc(column),
         name=column,
         mean=vmean,
@@ -85,7 +95,9 @@ def normalize(df: pd.DataFrame,
   """
   df_norm = pd.DataFrame()
   for column in get_column_order(normalization_info):
-    if normalization_info[column].std != 0:
+    if normalization_info[column].cat:
+      df_norm[column] = df[column]
+    elif normalization_info[column].std != 0:
       df_norm[column] = (df[column] - normalization_info[column].mean
                         ) / normalization_info[column].std
     else:
@@ -107,7 +119,9 @@ def denormalize(df_norm: pd.DataFrame,
   """
   df = pd.DataFrame()
   for column in get_column_order(normalization_info):
-    if normalization_info[column].std != 0:
+    if normalization_info[column].cat:
+      df[column] = df_norm[column]
+    elif normalization_info[column].std != 0:
       df[column] = df_norm[column] * normalization_info[
           column].std + normalization_info[column].mean
     else:
@@ -121,11 +135,11 @@ def write_normalization_info(normalization_info: Dict[str, Variable],
   """Writes variable normalization info to CSV."""
 
   def to_df(normalization_info):
-    df = pd.DataFrame(columns=["index", "mean", "std"])
+    df = pd.DataFrame(columns=["index", "mean", "std", "cat"])
     for variable in normalization_info:
       df.loc[variable] = [
           normalization_info[variable].index, normalization_info[variable].mean,
-          normalization_info[variable].std
+          normalization_info[variable].std, normalization_info[variable].cat
       ]
     return df
 
@@ -141,7 +155,7 @@ def read_normalization_info(
     normalization_info = {}
     for name, row in df.iterrows():
       normalization_info[name] = Variable(
-          row["index"], name, row["mean"], row["std"])
+          row["index"], name, row["mean"], row["std"], row["cat"])
     return normalization_info
 
   normalization_info = {}
@@ -189,6 +203,9 @@ def get_neg_sample(pos_sample: pd.DataFrame,
       df_neg[field_name] = np.random.permutation(
           np.array(pos_sample_n[field_name]))
 
+    elif pos_sample[field_name].dtype.name == 'category':
+      df_neg[field_name] = np.random.choice(pos_sample[field_name].unique(), size=n_points)
+      df_neg[field_name] = df_neg[field_name].astype('category')
     else:
       low_val = min(pos_sample[field_name])
       high_val = max(pos_sample[field_name])
