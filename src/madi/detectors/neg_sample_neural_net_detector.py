@@ -114,7 +114,7 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
                 write_images=False)
         ])
 
-      return normalized_training_sample
+    return normalized_training_sample
 
   def predict(self, sample_df: pd.DataFrame) -> pd.DataFrame:
     """Given new data, predict the probability of being positive class.
