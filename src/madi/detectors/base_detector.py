@@ -23,7 +23,7 @@ class BaseAnomalyDetectionAlgorithm(metaclass=abc.ABCMeta):
   """All AD algorithms will include a train and predict step."""
 
   @abc.abstractmethod
-  def train_model(self, x_train: pd.DataFrame) -> None:
+  def train_model(self, x_train: pd.DataFrame) -> pd.DataFrame:
     """Trains the model on a training set."""
     pass
 

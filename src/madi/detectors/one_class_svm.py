@@ -33,7 +33,7 @@ class OneClassSVMAd(sklearn.svm.OneClassSVM, BaseAnomalyDetectionAlgorithm):
     super(OneClassSVMAd, self).__init__(*args, **kwargs)
     self._normalization_info = None
 
-  def train_model(self, x_train: pd.DataFrame) -> None:
+  def train_model(self, x_train: pd.DataFrame) -> pd.DataFrame:
     """Trains a OC-SVM Anomaly detector using the positive sample.
 
     Args:
@@ -44,6 +44,7 @@ class OneClassSVMAd(sklearn.svm.OneClassSVM, BaseAnomalyDetectionAlgorithm):
     normalized_x_train = sample_utils.normalize(x_train[column_order],
                                                 self._normalization_info)
     super(OneClassSVMAd, self).fit(X=normalized_x_train)
+    return normalized_x_train
 
   def predict(self, sample_df: pd.DataFrame) -> pd.DateOffset:
     """Performs anomaly detection on a new sample.

@@ -60,7 +60,7 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
     # creates a new one before getting started.
     tf.keras.backend.clear_session()
 
-  def train_model(self, x_train: pd.DataFrame) -> None:
+  def train_model(self, x_train: pd.DataFrame) -> pd.DataFrame:
     """Train a new model and report the loss and accuracy.
 
     Args:
@@ -113,6 +113,8 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
                 write_graph=False,
                 write_images=False)
         ])
+
+      return normalized_training_sample
 
   def predict(self, sample_df: pd.DataFrame) -> pd.DataFrame:
     """Given new data, predict the probability of being positive class.

@@ -41,7 +41,7 @@ class NegativeSamplingRandomForestAd(sklearn.ensemble.RandomForestClassifier,
     self._sample_ratio = sample_ratio
     self._sample_delta = sample_delta
 
-  def train_model(self, x_train: pd.DataFrame) -> None:
+  def train_model(self, x_train: pd.DataFrame) -> pd.DataFrame:
     """Trains a NS-NN Anomaly detector using the positive sample.
 
     Args:
@@ -61,6 +61,8 @@ class NegativeSamplingRandomForestAd(sklearn.ensemble.RandomForestClassifier,
     super(NegativeSamplingRandomForestAd, self).fit(
         X=normalized_training_sample[column_order],
         y=normalized_training_sample[_CLASS_LABEL])
+
+    return normalized_training_sample
 
   def predict(self, sample_df: pd.DataFrame) -> pd.DataFrame:
     """Performs anomaly detection on a new sample.
