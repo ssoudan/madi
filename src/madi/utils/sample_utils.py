@@ -107,8 +107,12 @@ def denormalize(df_norm: pd.DataFrame,
   """
   df = pd.DataFrame()
   for column in get_column_order(normalization_info):
-    df[column] = df_norm[column] * normalization_info[
-        column].std + normalization_info[column].mean
+    if normalization_info[column].std != 0:
+      df[column] = df_norm[column] * normalization_info[
+          column].std + normalization_info[column].mean
+    else:
+      df[column] = df_norm[column] + normalization_info[column].mean
+
   return df
 
 
