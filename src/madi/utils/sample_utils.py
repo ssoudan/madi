@@ -85,8 +85,12 @@ def normalize(df: pd.DataFrame,
   """
   df_norm = pd.DataFrame()
   for column in get_column_order(normalization_info):
-    df_norm[column] = (df[column] - normalization_info[column].mean
-                      ) / normalization_info[column].std
+    if normalization_info[column].std != 0:
+      df_norm[column] = (df[column] - normalization_info[column].mean
+                        ) / normalization_info[column].std
+    else:
+      df_norm[column] = df[column] - normalization_info[column].mean
+
   return df_norm
 
 
