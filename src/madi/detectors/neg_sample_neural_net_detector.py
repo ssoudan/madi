@@ -22,6 +22,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
+from typing import List, Dict, Optional
+
 _SHUFFLE_BUFFERSIZE = 500
 _MODEL_FILENAME = 'model-multivariate-ad'
 _NORMALIZATION_FILENAME = 'normalization_info'
@@ -60,11 +62,12 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
     # creates a new one before getting started.
     tf.keras.backend.clear_session()
 
-  def train_model(self, x_train: pd.DataFrame) -> pd.DataFrame:
+  def train_model(self, x_train: pd.DataFrame, one_hot_groups: Optional[Dict[str, List[str]]] = None) -> pd.DataFrame:
     """Train a new model and report the loss and accuracy.
 
     Args:
       x_train: dataframe with dimensions as columns.
+      one_hot_groups: Dict of category name to arrays of columns belonging to the same one-hot encoded category
     """
     self._normalization_info = sample_utils.get_normalization_info(x_train)
     column_order = sample_utils.get_column_order(self._normalization_info)
@@ -74,7 +77,8 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
     normalized_training_sample = sample_utils.apply_negative_sample(
         positive_sample=normalized_x_train,
         sample_ratio=self._sample_ratio,
-        sample_delta=self._sample_delta)
+        sample_delta=self._sample_delta,
+        one_hot_groups=one_hot_groups)
 
     x = np.float32(np.matrix(normalized_training_sample[column_order]))
     y = np.float32(np.array(normalized_training_sample['class_label']))

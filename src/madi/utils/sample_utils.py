@@ -14,7 +14,7 @@
 #     limitations under the License.
 """Utilities to to generate or modify data samples."""
 
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -170,7 +170,10 @@ def read_normalization_info(
 def get_neg_sample(pos_sample: pd.DataFrame,
                    n_points: int,
                    do_permute: bool = False,
-                   delta: float = 0.0) -> pd.DataFrame:
+                   delta: float = 0.0,
+                   one_hot_groups: Optional[Dict[str,
+                                                 List[str]]] = None
+                   ) -> pd.DataFrame:
   """Creates a negative sample from the cuboid bounded by +/- delta.
 
   Where, [min - delta, max + delta] for each of the dimensions.
@@ -184,7 +187,9 @@ def get_neg_sample(pos_sample: pd.DataFrame,
     pos_sample: DF with numeric dimensions
     n_points: number points to be returned
     do_permute: permute or sample
-    delta: fraction of [max - min] to extend the sampling.
+    delta: fraction of [max - min] to extend the sampling
+    one_hot_groups: Dict of category name to arrays of columns belonging to
+    the same one-hot encoded category.
 
   Returns:
     A dataframe  with the same number of columns, and a label column
@@ -194,7 +199,30 @@ def get_neg_sample(pos_sample: pd.DataFrame,
 
   pos_sample_n = pos_sample.sample(n=n_points, replace=True)
 
-  for field_name in list(pos_sample):
+  # use one_hot_groups if present
+  one_hot_cols = []
+  if one_hot_groups is not None:
+    for v in one_hot_groups.values():
+      n_cols = len(v)
+
+      # remember what cols to skip in next loop
+      one_hot_cols = one_hot_cols + v
+
+      # extrema
+      hot_vals = pos_sample[v].to_numpy().max(axis=0)
+      cold_vals = pos_sample[v].to_numpy().min(axis=0)
+
+      # alternatives
+      cold_rows = np.tile(cold_vals, (n_cols, 1))
+      hot_rows = np.tile(hot_vals, (n_cols, 1))
+      one_hot_choices = np.eye(n_cols)*(hot_rows - cold_rows)+cold_rows
+
+      # draw
+      draw = one_hot_choices[np.random.choice(n_cols, n_points)]
+      for i, c in enumerate(v):
+        df_neg[c] = draw[:, i]
+
+  for field_name in list(set(list(pos_sample)) - set(one_hot_cols)):
 
     if field_name == "class_label":
       continue
@@ -204,7 +232,9 @@ def get_neg_sample(pos_sample: pd.DataFrame,
           np.array(pos_sample_n[field_name]))
 
     elif pos_sample[field_name].dtype.name == 'category':
-      df_neg[field_name] = np.random.choice(pos_sample[field_name].unique(), size=n_points)
+      df_neg[field_name] = np.random.choice(pos_sample[
+                                              field_name].unique(),
+                                            size=n_points)
       df_neg[field_name] = df_neg[field_name].astype('category')
     else:
       low_val = min(pos_sample[field_name])
@@ -220,13 +250,18 @@ def get_neg_sample(pos_sample: pd.DataFrame,
 
 
 def apply_negative_sample(positive_sample: pd.DataFrame, sample_ratio: float,
-                          sample_delta: float) -> pd.DataFrame:
+                          sample_delta: float,
+                          one_hot_groups: Optional[Dict[str,
+                                                        List[str]]] = None) \
+      -> pd.DataFrame:
   """Returns a dataset with negative and positive sample.
 
   Args:
     positive_sample: actual, observed sample where each col is a feature.
     sample_ratio: the desired ratio of negative to positive points
     sample_delta: the extension beyond observed limits to bound the neg sample
+    one_hot_groups: Dict of category name to arrays of columns belonging to
+    the same one-hot encoded category
 
   Returns:
     DataFrame with features + class label, with 1 being observed and 0 negative.
@@ -235,7 +270,8 @@ def apply_negative_sample(positive_sample: pd.DataFrame, sample_ratio: float,
   positive_sample["class_label"] = 1
   n_neg_points = int(len(positive_sample) * sample_ratio)
   negative_sample = get_neg_sample(
-      positive_sample, n_neg_points, do_permute=False, delta=sample_delta)
+      positive_sample, n_neg_points, do_permute=False, delta=sample_delta,
+      one_hot_groups=one_hot_groups)
   training_sample = pd.concat([positive_sample, negative_sample],
                               ignore_index=True,
                               sort=True)

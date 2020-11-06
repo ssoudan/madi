@@ -95,6 +95,40 @@ class TestSampleUtilsTest:
     assert min(df_neg['x003']) == pytest.approx(89, abs=1e-1)
     assert max(df_neg['x003']) == pytest.approx(111, abs=1e-1)
 
+  def test_get_neg_sample_with_one_hot_groups(self):
+    n_points = 10000
+    df_pos = pd.DataFrame({
+        'x001': [1, 1, 1, -1, -1, -1],
+        'x002': [0.5, 0.5, 0.5, -1.5, -1.5, -1.5],
+        'x003': [110, 110, 110, 90, 90, 90],
+        'a_code_0': [1., 1., 1., 0., 0., 0.],
+        'a_code_1': [0., 0., 0., 1., 1., 1.],
+        'b_code_0': [ 2., -2., -2., -2.,  2.,  2.],
+        'b_code_1': [-2.,  2., -2.,  2.,  2., -2.],
+        'b_code_2': [-2., -2.,  2.,  2.,  2.,  2.],
+        'class_label': 1
+    })
+    df_neg = sample_utils.get_neg_sample(
+        df_pos, n_points, do_permute=False, delta=0.05,
+        one_hot_groups={'a': ['a_code_0', 'a_code_1'],
+                        'b': ['b_code_0', 'b_code_1', 'b_code_2']})
+    assert len(df_neg) == n_points
+    # dif = 20, 5% = 1: min should be one less, and max should be one more
+    assert min(df_neg['x003']) == pytest.approx(89, abs=1e-1)
+    assert max(df_neg['x003']) == pytest.approx(111, abs=1e-1)
+    assert max(df_neg['a_code_0']) == pytest.approx(1., abs=1e-1)
+    assert min(df_neg['a_code_0']) == pytest.approx(0., abs=1e-1)
+    assert min(df_neg['b_code_0']) == pytest.approx(-2., abs=1e-1)
+    assert max(df_neg['b_code_0']) == pytest.approx(2., abs=1e-1)
+    assert min(df_neg['b_code_1']) == pytest.approx(-2., abs=1e-1)
+    assert max(df_neg['b_code_1']) == pytest.approx(2., abs=1e-1)
+    assert min(df_neg['b_code_2']) == pytest.approx(-2., abs=1e-1)
+    assert max(df_neg['b_code_2']) == pytest.approx(2., abs=1e-1)
+    np.testing.assert_allclose(df_neg[['a_code_0', 'a_code_1']].to_numpy().sum(axis=1),
+                               np.full((n_points), 1.), rtol=1e-5, atol=0)
+    np.testing.assert_allclose(df_neg[['b_code_0', 'b_code_1', 'b_code_2']].to_numpy().sum(axis=1),
+                               np.full((n_points), -2.), rtol=1e-5, atol=0)
+
   def test_get_positive_sample(self):
     df_raw = pd.DataFrame({
         'x001': [1, 1, 1, -1, -1, -1],
