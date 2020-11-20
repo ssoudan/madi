@@ -62,12 +62,13 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
     # creates a new one before getting started.
     tf.keras.backend.clear_session()
 
-  def train_model(self, x_train: pd.DataFrame, one_hot_groups: Optional[Dict[str, List[str]]] = None) -> pd.DataFrame:
+  def train_model(self, x_train: pd.DataFrame, one_hot_groups: Optional[Dict[str, List[str]]] = None, verbose: int = 0) -> pd.DataFrame:
     """Train a new model and report the loss and accuracy.
 
     Args:
       x_train: dataframe with dimensions as columns.
       one_hot_groups: Dict of category name to arrays of columns belonging to the same one-hot encoded category
+      verbose: keras-style verbosity flag
     """
     self._normalization_info = sample_utils.get_normalization_info(x_train)
     column_order = sample_utils.get_column_order(self._normalization_info)
@@ -108,7 +109,7 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
     self._model.fit(
         x=train_dataset,
         steps_per_epoch=self._steps_per_epoch,
-        verbose=0,
+        verbose=verbose,
         epochs=self._epochs,
         callbacks=[
             tf.keras.callbacks.TensorBoard(
