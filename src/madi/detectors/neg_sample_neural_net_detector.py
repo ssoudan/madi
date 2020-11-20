@@ -42,7 +42,8 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
                layer_width: int,
                n_hidden_layers: int,
                log_dir: str,
-               tpu_worker: str = None):
+               tpu_worker: str = None,
+               reshuffle_each_iteration: bool = None):
     self._sample_ratio = sample_ratio
     self._sample_delta = sample_delta
     self._model = None
@@ -56,6 +57,7 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
     self._tpu_worker = tpu_worker
     self._batch_size = batch_size
     self._normalization_info = None
+    self._reshuffle_each_iteration = reshuffle_each_iteration
     logging.info('TensorFlow version %s', tf.version.VERSION)
 
     # Especially with TPUs, it's useful to destroy the current TF graph and
@@ -92,7 +94,7 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
 
     # zip the two datasets together
     train_dataset = tf.data.Dataset.zip(
-        (dx, dy)).shuffle(_SHUFFLE_BUFFERSIZE).repeat().batch(self._batch_size)
+        (dx, dy)).shuffle(_SHUFFLE_BUFFERSIZE, reshuffle_each_iteration=self._reshuffle_each_iteration).repeat().batch(self._batch_size)
 
     if self._tpu_worker:
       resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
