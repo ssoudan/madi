@@ -64,7 +64,10 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
     # creates a new one before getting started.
     tf.keras.backend.clear_session()
 
-  def train_model(self, x_train: pd.DataFrame, one_hot_groups: Optional[Dict[str, List[str]]] = None, verbose: int = 0) -> pd.DataFrame:
+  def train_model(self,
+                  x_train: pd.DataFrame,
+                  one_hot_groups: Optional[Dict[str, List[str]]] = None,
+                  verbose: int = 0) -> pd.DataFrame:
     """Train a new model and report the loss and accuracy.
 
     Args:
@@ -94,7 +97,8 @@ class NegativeSamplingNeuralNetworkAD(BaseAnomalyDetectionAlgorithm):
 
     # zip the two datasets together
     train_dataset = tf.data.Dataset.zip(
-        (dx, dy)).shuffle(_SHUFFLE_BUFFERSIZE, reshuffle_each_iteration=self._reshuffle_each_iteration).repeat().batch(self._batch_size)
+        (dx, dy)).shuffle(_SHUFFLE_BUFFERSIZE,
+                          reshuffle_each_iteration=self._reshuffle_each_iteration).repeat().batch(self._batch_size)
 
     if self._tpu_worker:
       resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
